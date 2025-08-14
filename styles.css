@@ -1,75 +1,244 @@
-
-/* Mobile First Reset y base */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+  color: #ffffff;
+  text-align: center;
+}
+
+/* FONDO CUÁNTICO ANIMADO */
 body {
-    font-family: 'Segoe UI', sans-serif;
-    min-height: 100vh;
-    color: #ffffff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(-45deg, #0f2027, #2c5364, #3f2b96, #1c1c3c);
-    background-size: 400% 400%;
-    animation: fondoAnimado 20s ease infinite;
-    padding: 1.5rem;
-    text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(ellipse at bottom, #0f0c29, #302b63, #24243e);
+  background-size: 400% 400%;
+  animation: nonlinearFlow 30s ease-in-out infinite;
+  position: relative;
+  padding: 1.5rem;
 }
 
-/* Animación del fondo */
-@keyframes fondoAnimado {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+/* Capa de partículas */
+body::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: fieldDrift 120s ease-in-out infinite;
+  opacity: 0.06;
+  z-index: 1;
 }
 
+/* Animación tipo campo no lineal */
+@keyframes nonlinearFlow {
+  0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+  25% { background-position: 100% 50%; filter: hue-rotate(60deg); }
+  50% { background-position: 50% 100%; filter: hue-rotate(180deg); }
+  75% { background-position: 0% 50%; filter: hue-rotate(300deg); }
+  100% { background-position: 0% 50%; filter: hue-rotate(360deg); }
+}
+
+@keyframes fieldDrift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, 50px) scale(1.2); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+/* CONTENEDOR PRINCIPAL */
 main {
-    max-width: 480px;
-    width: 100%;
-    padding: 1rem;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 1rem;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 2;
+  max-width: 480px;
+  width: 100%;
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 1rem;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
 }
 
+/* TITULOS */
 h1 {
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
 }
 
+/* NAVEGACIÓN */
 nav a {
-    display: block;
-    margin: 1rem 0;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background 0.3s ease;
+  display: block;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.3s ease;
 }
 
 nav a:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Tablet y desktop */
-@media (min-width: 768px) {
-    h1 {
-        font-size: 2.2rem;
-    }
+/* Estilos específicos para contador.html */
+.contador-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
 
-    nav a {
-        font-size: 1.1rem;
-    }
+#valor {
+  font-size: 2.5rem;
+  font-weight: bold;
+  width: 80px;
+  text-align: center;
+}
+
+#incrementar,
+#decrementar {
+  width: 4rem;
+  height: 4rem;
+  font-size: 2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 0.7rem; /* Bordes redondeados, no circulares */
+  color: #fff;
+  background: linear-gradient(145deg, #2e2e90, #202060);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+#incrementar:hover {
+  background: linear-gradient(145deg, #2c8a4e, #1e5a3a);
+}
+
+#decrementar:hover {
+  background: linear-gradient(145deg, #8a2c2c, #5a1e1e);
+}
+
+#incrementar:active,
+#decrementar:active {
+  transform: scale(0.92);
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+#contador {
+  min-width: 4rem;
+  text-align: center;
+}
+
+/* Volver al inicio */
+.btn-home {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  font-size: 1.5rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 50%;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  z-index: 99;
+}
+
+.btn-home:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* Conversor: input y botón dentro del mismo contenedor */
+.contador-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* Campo de entrada */
+input[type="number"] {
+  padding: 0.8rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(173, 216, 230, 0.6);
+  font-size: 1rem;
+  width: 100%;
+  max-width: 260px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(173, 216, 230, 0.05));
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(173, 216, 230, 0.3);
+  transition: all 0.3s ease;
+}
+
+input[type="number"]::placeholder {
+  color: #bbdcee;
+}
+
+/* Botón convertir */
+#convertir {
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(135deg, #6dd5fa, #2980b9);
+  border: none;
+  border-radius: 0.6rem;
+  color: #ffffff;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+#convertir:hover {
+  filter: brightness(1.1);
+}
+
+#convertir:active {
+  transform: scale(0.96);
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Resultado */
+#fahrenheit {
+  margin-top: 1.5rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #a3d4ff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+
+/* RESPONSIVE - TABLET Y DESKTOP */
+@media (min-width: 768px) {
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  nav a {
+    font-size: 1.1rem;
+  }
+
+  #incrementar,
+  #decrementar {
+    font-size: 2rem;
+    width: 4rem;
+    height: 4rem;
+  }
+
+  #valor {
+    font-size: 3rem;
+  }
 }
