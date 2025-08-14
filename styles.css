@@ -1,3 +1,7 @@
+/* ==========================================================================
+   RESET BÁSICO Y ESTILOS GENERALES
+   ========================================================================== */
+
 * {
   margin: 0;
   padding: 0;
@@ -6,25 +10,27 @@
 
 html, body {
   height: 100%;
-  font-family: 'Segoe UI', sans-serif;
   overflow-x: hidden;
-  color: #ffffff;
+  font-family: 'Segoe UI', sans-serif;
   text-align: center;
+  color: #ffffff;
 }
 
-/* FONDO CUÁNTICO ANIMADO */
+/* ==========================================================================
+   FONDO ANIMADO CUÁNTICO
+   ========================================================================== */
+
 body {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+  padding: 1.5rem;
   background: radial-gradient(ellipse at bottom, #0f0c29, #302b63, #24243e);
   background-size: 400% 400%;
   animation: nonlinearFlow 30s ease-in-out infinite;
-  position: relative;
-  padding: 1.5rem;
 }
 
-/* Capa de partículas */
 body::before {
   content: "";
   position: absolute;
@@ -34,45 +40,51 @@ body::before {
   left: -50%;
   background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
   background-size: 60px 60px;
-  animation: fieldDrift 120s ease-in-out infinite;
   opacity: 0.06;
   z-index: 1;
+  animation: fieldDrift 120s ease-in-out infinite;
 }
 
-/* Animación tipo campo no lineal */
+/* Animaciones */
+
 @keyframes nonlinearFlow {
-  0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
-  25% { background-position: 100% 50%; filter: hue-rotate(60deg); }
-  50% { background-position: 50% 100%; filter: hue-rotate(180deg); }
-  75% { background-position: 0% 50%; filter: hue-rotate(300deg); }
+  0%   { background-position: 0% 50%; filter: hue-rotate(0deg); }
+  25%  { background-position: 100% 50%; filter: hue-rotate(60deg); }
+  50%  { background-position: 50% 100%; filter: hue-rotate(180deg); }
+  75%  { background-position: 0% 50%; filter: hue-rotate(300deg); }
   100% { background-position: 0% 50%; filter: hue-rotate(360deg); }
 }
 
 @keyframes fieldDrift {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(50px, 50px) scale(1.2); }
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(50px, 50px) scale(1.2); }
   100% { transform: translate(0, 0) scale(1); }
 }
 
-/* CONTENEDOR PRINCIPAL */
+/* ==========================================================================
+   CONTENEDOR PRINCIPAL Y TÍTULOS
+   ========================================================================== */
+
 main {
   position: relative;
   z-index: 2;
-  max-width: 480px;
   width: 100%;
+  max-width: 480px;
   padding: 1.5rem;
-  background-color: rgba(0, 0, 0, 0.5);
   border-radius: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
   box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
 }
 
-/* TITULOS */
 h1 {
   font-size: 1.8rem;
   margin-bottom: 1rem;
 }
 
-/* NAVEGACIÓN */
+/* ==========================================================================
+   NAVEGACIÓN GENERAL
+   ========================================================================== */
+
 nav a {
   display: block;
   margin: 1rem 0;
@@ -89,7 +101,10 @@ nav a:hover {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Estilos específicos para contador.html */
+/* ==========================================================================
+   CONTADOR (BOTONES Y VALOR)
+   ========================================================================== */
+
 .contador-container {
   display: flex;
   flex-direction: row;
@@ -114,11 +129,11 @@ nav a:hover {
   font-weight: bold;
   border: none;
   border-radius: 0.7rem;
+  cursor: pointer;
   color: #fff;
   background: linear-gradient(145deg, #2e2e90, #202060);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
   transition: all 0.15s ease;
-  cursor: pointer;
 }
 
 #incrementar:hover {
@@ -135,34 +150,10 @@ nav a:hover {
   box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.5);
 }
 
-#contador {
-  min-width: 4rem;
-  text-align: center;
-}
+/* ==========================================================================
+   CONVERSOR DE TEMPERATURAS
+   ========================================================================== */
 
-/* Volver al inicio */
-.btn-home {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
-  color: #ffffff;
-  font-size: 1.5rem;
-  padding: 0.6rem 0.9rem;
-  border-radius: 50%;
-  text-decoration: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  z-index: 99;
-}
-
-.btn-home:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-  transform: scale(1.1);
-}
-
-/* Conversor: input y botón dentro del mismo contenedor */
 .conversor-container {
   display: flex;
   flex-direction: column;
@@ -171,19 +162,18 @@ nav a:hover {
   margin-top: 2rem;
 }
 
-/* Campo de entrada */
 input[type="number"] {
-  padding: 0.8rem 1rem;
-  border-radius: 0.6rem;
-  border: 1px solid rgba(173, 216, 230, 0.6);
-  font-size: 1rem;
   width: 100%;
   max-width: 260px;
+  padding: 0.8rem 1rem;
+  border-radius: 0.6rem;
+  font-size: 1rem;
+  border: 1px solid rgba(173, 216, 230, 0.6);
   text-align: center;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(173, 216, 230, 0.05));
-  backdrop-filter: blur(6px);
   color: #ffffff;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(173, 216, 230, 0.05));
   box-shadow: 0 0 10px rgba(173, 216, 230, 0.3);
+  backdrop-filter: blur(6px);
   transition: all 0.3s ease;
 }
 
@@ -191,15 +181,14 @@ input[type="number"]::placeholder {
   color: #bbdcee;
 }
 
-/* Botón convertir */
 #convertir {
   padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, #6dd5fa, #2980b9);
+  font-weight: bold;
+  color: #ffffff;
   border: none;
   border-radius: 0.6rem;
-  color: #ffffff;
-  font-weight: bold;
   cursor: pointer;
+  background: linear-gradient(135deg, #6dd5fa, #2980b9);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
   transition: transform 0.1s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
@@ -213,7 +202,6 @@ input[type="number"]::placeholder {
   box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
-/* Resultado */
 #fahrenheit {
   margin-top: 1.5rem;
   font-size: 1.2rem;
@@ -222,8 +210,35 @@ input[type="number"]::placeholder {
   text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
 }
 
+/* ==========================================================================
+   BOTÓN FLOTANTE: VOLVER AL HOME
+   ========================================================================== */
 
-/* RESPONSIVE - TABLET Y DESKTOP */
+.btn-home {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  font-size: 1.5rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 50%;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  z-index: 99;
+}
+
+.btn-home:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
 @media (min-width: 768px) {
   h1 {
     font-size: 2.2rem;
