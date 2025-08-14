@@ -1,17 +1,14 @@
-# webapps-uss
-Documentación, ejercicios y proyectos del curso Aplicaciones y Tecnologías Web (ICFAG001) de la Universidad San Sebastián.
+# webapps-uss (Aplicaciones y Tecnologías Web - USS) 👨‍💻🌐
 
-# Aplicaciones y Tecnologías Web - USS 👨‍💻🌐
-
-Repositorio personal para documentar mi avance en la asignatura **ICFAG001: Aplicaciones y Tecnologías Web** de la Universidad San Sebastián.
+Repositorio personal para documentar mi avance en la asignatura **ICFAG001: Aplicaciones y Tecnologías Web** de la Universidad San Sebastián. Aquí registraré la documentación, ejercicios y proyectos del curso
 
 ---
 
 ## ✨ Objetivo del repositorio
 
-- Documentar contenidos teóricos por semana.
-- Compartir ejercicios, proyectos y buenas prácticas.
-- Publicar una web estática a través de GitHub Pages.
+- Registrar y documentar los contenidos teóricos por semana.
+- Compartir ejercicios prácticos, desafíos y buenas prácticas.
+- Publicar los desarrollos web mediante GitHub Pages.
 - Desarrollar proyectos prácticos aplicando conocimientos adquiridos.
 
 ---
