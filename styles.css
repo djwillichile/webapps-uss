@@ -92,9 +92,11 @@ nav a:hover {
 /* Estilos específicos para contador.html */
 .contador-container {
   display: flex;
+  flex-direction: row;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
   gap: 1.5rem;
+  margin-top: 2rem;
 }
 
 #valor {
@@ -111,7 +113,7 @@ nav a:hover {
   font-size: 2rem;
   font-weight: bold;
   border: none;
-  border-radius: 0.7rem; /* Bordes redondeados, no circulares */
+  border-radius: 0.7rem;
   color: #fff;
   background: linear-gradient(145deg, #2e2e90, #202060);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
@@ -161,7 +163,7 @@ nav a:hover {
 }
 
 /* Conversor: input y botón dentro del mismo contenedor */
-.contador-container {
+.conversor-container {
   display: flex;
   flex-direction: column;
   align-items: center;
