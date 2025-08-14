@@ -1,4 +1,4 @@
-# webapps-uss (Aplicaciones y Tecnologías Web - USS) 👨‍💻🌐
+# Aplicaciones y Tecnologías Web (webapps-uss) 👨‍💻🌐
 
 Repositorio personal para documentar mi avance en la asignatura **ICFAG001: Aplicaciones y Tecnologías Web** de la Universidad San Sebastián. Aquí registraré la documentación, ejercicios y proyectos del curso
 
