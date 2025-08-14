@@ -37,7 +37,7 @@ Repositorio personal para documentar mi avance en la asignatura **ICFAG001: Apli
 
 ## 🌐 GitHub Pages
 
-Puedes visitar el sitio desplegado desde este repositorio [aquí](https://tu-usuario.github.io/aplicaciones-tecnologias-web-uss)
+Puedes visitar el sitio desplegado desde este repositorio [aquí]( https://djwillichile.github.io/webapps-uss/)
 
 ---
 
