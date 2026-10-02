@@ -37,18 +37,37 @@ async function api(path, options = {}) {
   return { res, body };
 }
 
-async function enqueue() {
-  const { res, body } = await api('/api/jobs', { method: 'POST', body: JSON.stringify(readPayload()) });
+async function enqueue(payload = readPayload(), out = msg) {
+  const { res, body } = await api('/api/jobs', { method: 'POST', body: JSON.stringify(payload) });
   if (res.status !== 202) {
     const detail = body.details?.map((d) => `${d.path}: ${d.message}`).join('; ');
-    msg.textContent = `Error ${res.status}: ${body.error ?? 'desconocido'}${detail ? ` (${detail})` : ''}`;
+    out.textContent = `Error ${res.status}: ${body.error ?? 'desconocido'}${detail ? ` (${detail})` : ''}`;
     return;
   }
-  msg.textContent = `Trabajo encolado: ${body.jobId}`;
+  out.textContent = `Trabajo encolado: ${body.jobId}`;
   trackJob(body.jobId);
 }
 
 form.addEventListener('submit', (e) => { e.preventDefault(); enqueue(); });
+
+const EXAMPLE_POLYGON = {
+  type: 'Polygon',
+  coordinates: [[[-70.6, -33.5], [-70.3, -33.5], [-70.3, -33.3], [-70.6, -33.3], [-70.6, -33.5]]],
+};
+$('geo-example').addEventListener('click', () => {
+  $('geo-geometry').value = JSON.stringify(EXAMPLE_POLYGON, null, 2);
+});
+$('geo-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  let geometry;
+  try {
+    geometry = JSON.parse($('geo-geometry').value);
+  } catch {
+    $('geo-msg').textContent = 'El polígono no es JSON válido';
+    return;
+  }
+  enqueue({ type: 'zonal-stats', dataset: $('geo-dataset').value, geometry }, $('geo-msg'));
+});
 $('burst').addEventListener('click', async () => {
   for (let i = 0; i < 10; i++) await enqueue();
 });
@@ -80,7 +99,16 @@ function trackJob(jobId) {
     state.textContent = body.state;
     state.dataset.state = body.state;
     bar.value = typeof body.progress === 'number' ? body.progress : 0;
-    if (body.state === 'completed') {
+    if (body.state === 'completed' && body.type === 'zonal-stats') {
+      const r = body.result;
+      result.textContent = [
+        `área=${fmt(r.geometry.area_km2)} km²  perímetro=${fmt(r.geometry.perimeter_km)} km  centroide=${r.geometry.centroid.join(', ')}`,
+        `píxeles válidos=${r.pixels_valid} (sin dato=${r.pixels_nodata})  [${r.dataset}, ${r.crs}]`,
+        `mín=${fmt(r.stats.min)}  media=${fmt(r.stats.mean)}  máx=${fmt(r.stats.max)}  sd=${fmt(r.stats.std)} ${r.units ?? ''}`,
+        `p10=${fmt(r.stats.p10)}  p50=${fmt(r.stats.p50)}  p90=${fmt(r.stats.p90)}`,
+      ].join('\n');
+      clearInterval(timer);
+    } else if (body.state === 'completed') {
       const s = body.result.stats;
       result.textContent = [
         `n=${s.n}  media=${fmt(s.mean)}  sd=${fmt(s.sd)}  mín=${fmt(s.min)}  máx=${fmt(s.max)}`,

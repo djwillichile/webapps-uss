@@ -23,6 +23,14 @@ export const defaultJobOptions = {
   removeOnFail: { age: 24 * 3600, count: 5000 },
 };
 
-export function createQueue(config, connection) {
-  return new Queue(config.QUEUE_NAME, { connection, defaultJobOptions });
+export function createQueue(name, connection) {
+  return new Queue(name, { connection, defaultJobOptions });
+}
+
+// Each job type is routed to the queue whose workers know how to process it:
+// BullMQ workers cannot pick jobs by name, so different runtimes need different queues.
+export function createQueues(config, connection) {
+  const series = createQueue(config.QUEUE_NAME, connection);
+  const geo = createQueue(config.GEO_QUEUE_NAME, connection);
+  return { 'series-stats': series, 'zonal-stats': geo };
 }

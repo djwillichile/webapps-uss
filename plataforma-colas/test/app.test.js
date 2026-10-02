@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createApp } from '../src/app.js';
-import { FakeQueue, KEY_A, KEY_B, request, startServer, testConfig, validBody } from './helpers.js';
+import { fakeQueues, KEY_A, KEY_B, request, startServer, testConfig, validBody, validZonalBody } from './helpers.js';
 
 let server;
-let queue;
+let queues;
+let queue; // the series-stats queue, used by most tests
 
 before(async () => {
-  queue = new FakeQueue();
-  server = await startServer(createApp({ queue, config: testConfig() }));
+  queues = fakeQueues();
+  queue = queues['series-stats'];
+  server = await startServer(createApp({ queues, config: testConfig() }));
 });
 after(() => server.close());
 
@@ -74,7 +76,7 @@ test('backpressure: returns 503 + Retry-After when the queue is full', async () 
 });
 
 test('rate limit is applied per client', async () => {
-  const limited = await startServer(createApp({ queue: new FakeQueue(), config: testConfig({ RATE_LIMIT_PER_MIN: 2 }) }));
+  const limited = await startServer(createApp({ queues: fakeQueues(), config: testConfig({ RATE_LIMIT_PER_MIN: 2 }) }));
   try {
     const statuses = [];
     for (let i = 0; i < 3; i++) statuses.push((await request(limited.base, '/api/jobs', { body: validBody, key: KEY_A })).status);
@@ -83,5 +85,43 @@ test('rate limit is applied per client', async () => {
     assert.equal((await request(limited.base, '/api/jobs', { body: validBody, key: KEY_B })).status, 202);
   } finally {
     await limited.close();
+  }
+});
+
+test('zonal-stats jobs are routed to the geo queue', async () => {
+  const res = await request(server.base, '/api/jobs', { body: validZonalBody, key: KEY_A });
+  assert.equal(res.status, 202);
+  const { jobId } = await res.json();
+  assert.ok(queues['zonal-stats'].jobs.has(jobId));
+  assert.ok(!queue.jobs.has(jobId));
+  // The status endpoint finds it regardless of the queue it lives in.
+  assert.equal((await request(server.base, `/api/jobs/${jobId}`, { key: KEY_A })).status, 200);
+});
+
+test('rejects invalid geometries and datasets outside the allowlist', async () => {
+  const ring = validZonalBody.geometry.coordinates[0];
+  const bad = [
+    { ...validZonalBody, dataset: '../../etc/passwd' },
+    { ...validZonalBody, geometry: { type: 'Point', coordinates: [-70, -33] } },
+    { ...validZonalBody, geometry: { type: 'Polygon', coordinates: [ring.slice(0, -1)] } }, // not closed
+    { ...validZonalBody, geometry: { type: 'Polygon', coordinates: [[[-200, 0], [1, 0], [1, 1], [-200, 0]]] } },
+    { ...validZonalBody, series: validBody.series }, // fields of another job type
+  ];
+  for (const body of bad) {
+    const res = await request(server.base, '/api/jobs', { body, key: KEY_A });
+    assert.equal(res.status, 400, JSON.stringify(body));
+  }
+});
+
+test('only errors marked "user: " by a worker are shown to the client', async () => {
+  const geo = queues['zonal-stats'];
+  for (const [reason, expected] of [
+    ['user: polygon does not intersect the dataset extent', 'polygon does not intersect the dataset extent'],
+    ['ECONNREFUSED 10.0.0.5:6379 at /app/src/x.js', 'job failed'],
+  ]) {
+    const { jobId } = await (await request(server.base, '/api/jobs', { body: validZonalBody, key: KEY_A })).json();
+    Object.assign(geo.jobs.get(jobId), { failedReason: reason, getState: async () => 'failed' });
+    const body = await (await request(server.base, `/api/jobs/${jobId}`, { key: KEY_A })).json();
+    assert.equal(body.error, expected);
   }
 });

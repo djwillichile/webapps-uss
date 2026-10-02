@@ -1,4 +1,4 @@
-# docker compose up --build --scale worker=3
+# docker compose up --build --scale worker=3 --scale worker-geo=2
 services:
   redis:
     image: redis:7-alpine
@@ -47,6 +47,29 @@ services:
       resources:
         limits: { cpus: "0.50", memory: 256M } # one heavy job cannot starve the host
     stop_grace_period: 35s # let active jobs finish on shutdown
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  worker-geo:
+    build: ./worker-py # same queue system, different language
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATASETS: dem-demo=/app/data/dem_demo.tif
+      # Real data: mount it read-only and register it, e.g.
+      # DATASETS: dem-demo=/app/data/dem_demo.tif,srtm=/data/srtm_chile.tif
+    # volumes: ["./datos:/data:ro"]
+    networks: [backend]
+    depends_on:
+      redis: { condition: service_healthy }
+    deploy:
+      replicas: 1
+      resources:
+        limits: { cpus: "1.0", memory: 512M } # rasters need more memory than series
+    stop_grace_period: 35s
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]

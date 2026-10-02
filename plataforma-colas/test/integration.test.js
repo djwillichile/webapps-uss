@@ -6,7 +6,7 @@ import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createApp } from '../src/app.js';
 import { createProcessor } from '../src/processor.js';
-import { createQueue } from '../src/redis.js';
+import { createQueues } from '../src/redis.js';
 import { KEY_A, KEY_B, request, startServer, testConfig, validBody } from './helpers.js';
 
 const port = Number(process.env.TEST_REDIS_PORT ?? 6379);
@@ -27,24 +27,27 @@ async function redisAvailable() {
 }
 
 const available = await redisAvailable();
-const config = testConfig({ QUEUE_NAME: `it-${process.pid}` });
+const config = testConfig({ QUEUE_NAME: `it-${process.pid}`, GEO_QUEUE_NAME: `it-geo-${process.pid}` });
 const ctx = {};
 
 before(async () => {
   if (!available) return;
   ctx.conns = [newRedis(), newRedis(), newRedis()];
-  ctx.queue = createQueue(config, ctx.conns[0]);
+  ctx.queues = createQueues(config, ctx.conns[0]);
+  ctx.queue = ctx.queues['series-stats'];
   const processor = createProcessor({ maxSeriesLength: 2000, simulatedWorkMs: 50 });
   ctx.workers = [1, 2].map((i) => new Worker(config.QUEUE_NAME, processor, { connection: ctx.conns[i], concurrency: 2, name: `w${i}` }));
-  ctx.server = await startServer(createApp({ queue: ctx.queue, config }));
+  ctx.server = await startServer(createApp({ queues: ctx.queues, config }));
 });
 
 after(async () => {
   if (!available) return;
   await ctx.server.close();
   await Promise.all(ctx.workers.map((w) => w.close()));
-  await ctx.queue.obliterate({ force: true });
-  await ctx.queue.close();
+  for (const q of Object.values(ctx.queues)) {
+    await q.obliterate({ force: true });
+    await q.close();
+  }
   ctx.conns.forEach((c) => c.disconnect());
 });
 

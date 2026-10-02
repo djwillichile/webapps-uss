@@ -231,3 +231,105 @@ El patrón es idéntico para cargas geoespaciales y ambientales:
 - Un servicio de consultoría → cada cliente es un `clientId` con su cuota (rate limit) y sus trabajos aislados.
 
 BullMQ también tiene cliente Python (`pip install bullmq`), así que los workers pueden escribirse en Python (rasterio, xarray, scikit-learn) mientras la API sigue en Node.js, compartiendo la misma cola Redis.
+
+---
+
+## 11. Segundo worker en Python: estadística zonal geoespacial
+
+### 11.1 La idea
+
+```
+                       ┌──── type: "series-stats" ───► cola "analisis" ───► worker Node.js
+POST /api/jobs ─► API ─┤
+                       └──── type: "zonal-stats"  ───► cola "geo" ───────► worker Python (rasterio)
+```
+
+A Redis no le importa el lenguaje del worker. La API (Node) y el worker (Python) solo comparten dos cosas, y esas dos cosas son el **contrato**:
+
+1. El **nombre de la cola** (`GEO_QUEUE_NAME`).
+2. La **forma del JSON** del trabajo (`type`, `dataset`, `geometry`).
+
+**¿Por qué una cola por tipo?** Un worker de BullMQ toma *el siguiente trabajo de la cola*, sea cual sea; no puede decir "solo quiero los geoespaciales". Si ambos tipos compartieran cola, el worker Node recibiría polígonos que no sabe procesar. Por eso la API enruta (`createQueues` en `src/redis.js`).
+
+### 11.2 Qué calcula
+
+Para un polígono GeoJSON (WGS84) sobre un raster (por defecto un DEM):
+
+| Resultado | Cómo | Ojo con… |
+|---|---|---|
+| Área y perímetro | `pyproj.Geod` sobre el elipsoide WGS84 | Calcular el área en "grados²" es un error clásico: 1° de longitud mide 111 km en el ecuador y ~93 km en Santiago |
+| Centroide, bbox | shapely | El centroide de un polígono cóncavo puede caer fuera de él |
+| n, mín., máx., media, sd, p10/p50/p90 | rasterio + numpy sobre los píxeles cuyo **centro** está dentro | Ver 11.5 |
+
+### 11.3 Recorrido por el código (`worker-py/`)
+
+| Archivo | Responsabilidad | Qué observar |
+|---|---|---|
+| `geoworker/config.py` | Variables de entorno validadas | `DATASETS=id=ruta`: el cliente envía un **ID**, la ruta nunca sale del servidor |
+| `geoworker/zonal.py` | Funciones puras (sin Redis) | Lee **solo la ventana** del raster que cubre el polígono; reproyecta el polígono si el raster no está en EPSG:4326 |
+| `geoworker/processor.py` | Une BullMQ con las funciones puras | `asyncio.to_thread(...)` y la conversión `UserInputError` → `UnrecoverableError("user: …")` |
+| `geoworker/main.py` | Proceso worker | Logs JSON con el mismo formato que Node y apagado ordenado con SIGTERM |
+| `scripts/make_demo_raster.py` | Genera un DEM **sintético** | Valores inventados: sirven para probar el sistema, no para analizar |
+| `tests/` | pytest | Incluye un raster en UTM 19S para probar la reproyección |
+
+### 11.4 Tres lecciones de arquitectura que aparecen aquí
+
+**a) No bloquear el bucle de eventos.** El worker Python es `asyncio`: un solo hilo atiende Redis, renueva los *locks* y ejecuta tu código. Si rasterio ocupa ese hilo 40 s, el *lock* (30 s) expira, BullMQ cree que el worker murió y **otro worker toma el mismo trabajo** (doble ejecución). Por eso el cálculo corre en `asyncio.to_thread`. Para paralelismo real de CPU (el GIL limita a los hilos) el siguiente paso es un `ProcessPoolExecutor` o escalar réplicas del worker.
+
+**b) Errores que el usuario debe ver vs. errores internos.** "Tu polígono no toca el raster" es útil para el cliente; "ECONNREFUSED 10.0.0.5" es información para un atacante. Convención del proyecto: el worker antepone `user: ` a los mensajes seguros y la API muestra **solo** esos (`publicError` en `src/app.js`). Además, un error de entrada no se reintenta (`UnrecoverableError`), y uno de infraestructura sí.
+
+**c) Validar dos veces, en dos lenguajes.** zod en la API (forma: anillos cerrados, lon/lat en rango, máx. 2000 vértices) y shapely en el worker (topología: auto-intersecciones, área geodésica máxima, presupuesto de píxeles). La API no puede verificar la topología sin una librería geométrica, y el worker no confía en lo que hay en Redis.
+
+| Amenaza específica | Control |
+|---|---|
+| *Path traversal* (`"dataset": "../../etc/passwd"`) | Lista permitida de IDs en la API y en el worker; la ruta solo existe en el servidor |
+| Polígono gigante que agota RAM/CPU | `GEO_MAX_AREA_KM2` y `GEO_MAX_PIXELS`; ventana de lectura acotada |
+| Polígono con millones de vértices | Máx. 2000 por anillo y 10 anillos, más el límite de 64 kB del body |
+| Geometría inválida que rompe la librería | `shapely.is_valid` + `explain_validity`; respuesta 400/failed con motivo |
+
+### 11.5 Rigor geoespacial: limitaciones conocidas
+
+- **Criterio "centro del píxel".** Un píxel cuenta si su centro cae dentro del polígono (`all_touched=False`). En polígonos pequeños respecto al píxel, o muy alargados, el sesgo puede ser grande. Si el polígono no contiene ningún centro, el trabajo falla con un mensaje claro. Alternativa rigurosa: **`exactextract`**, que pondera cada píxel por la fracción cubierta.
+- **Pixeles en grados no son de igual área.** En EPSG:4326 la media simple de píxeles da más peso relativo a las latitudes altas. Para estadísticas ponderadas por área, usa un raster en proyección equivalente (p. ej. UTM 19S, EPSG:32719, o una Albers para Chile) o pondera por `cos(lat)`.
+- **Datum vertical y unidades.** El DEM de ejemplo es sintético. Con SRTM o Copernicus GLO-30 las alturas son sobre el geoide EGM96/EGM2008; documenta el dataset en `DATASETS` y en el resultado.
+
+### 11.6 Cómo ejecutarlo
+
+```bash
+cd plataforma-colas/worker-py
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+python scripts/make_demo_raster.py         # crea data/dem_demo.tif (sintético)
+pytest                                      # 17 pruebas (la de integración requiere Redis)
+
+python -m geoworker.main                    # usa REDIS_HOST/PORT/PASSWORD del entorno
+# con el .env de la API:  set -a; source ../.env; set +a; python -m geoworker.main
+```
+
+Con la API corriendo, usa el formulario **Estadística zonal** de la página o:
+
+```bash
+curl -s -X POST localhost:3000/api/jobs -H "X-API-Key: $KEY" -H "Content-Type: application/json" -d '{
+  "type": "zonal-stats", "dataset": "dem-demo",
+  "geometry": {"type":"Polygon","coordinates":[[[-70.6,-33.5],[-70.3,-33.5],[-70.3,-33.3],[-70.6,-33.3],[-70.6,-33.5]]]}}'
+```
+
+Con Docker: `docker compose up --build --scale worker-geo=2`.
+
+**Usar un DEM real:** descarga un recorte (p. ej. Copernicus GLO-30 desde OpenTopography o con `gdalwarp`), móntalo en solo lectura y regístralo:
+`DATASETS=dem-demo=/app/data/dem_demo.tif,glo30=/data/glo30_rm.tif` en el worker y `GEO_DATASETS=dem-demo,glo30` en la API.
+
+### 11.7 Experimentos
+
+1. Envía un polígono con forma de "corbatín" (auto-intersección). ¿Qué mensaje llega y en qué intento?
+2. Envía un polígono fuera del raster. Compara `attemptsMade` con el de un error de Redis (detén Redis a mitad del trabajo).
+3. Quita `asyncio.to_thread` y agrega `time.sleep(40)` en `compute`. Con dos workers, ¿cuántas veces se ejecuta el trabajo? (Pista: busca "stalled" en los logs.)
+4. Pon `GEO_MAX_PIXELS=1000` y envía el polígono de ejemplo.
+5. Compara la media del polígono de ejemplo con `all_touched=True`. ¿Cuánto cambia y por qué?
+
+### 11.8 Ejercicios
+
+1. Agrega `slope-stats`: pendiente media en grados calculada desde el DEM (cuidado: en EPSG:4326 hay que convertir grados a metros).
+2. Agrega un dataset NDVI (p. ej. una composición Sentinel-2 exportada desde Google Earth Engine) y un histograma por clases.
+3. Reemplaza el criterio centro del píxel por `exactextract` y compara.
+4. Acepta `MultiPolygon` (por ejemplo, una comuna con islas).

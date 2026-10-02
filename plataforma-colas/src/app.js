@@ -11,11 +11,23 @@ import { buildJobRequestSchema, JobIdSchema } from './schemas.js';
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const PENDING_STATES = ['waiting', 'active', 'delayed', 'prioritized'];
 
-// The app receives its dependencies (queue, config) instead of creating them,
-// which lets tests run it with an in-memory fake queue.
-export function createApp({ queue, config }) {
+// Workers may mark an error as safe to show by prefixing it with "user: "
+// (e.g. "user: polygon does not intersect the dataset"). Everything else stays generic.
+const PUBLIC_ERROR_PREFIX = 'user: ';
+function publicError(failedReason) {
+  return typeof failedReason === 'string' && failedReason.startsWith(PUBLIC_ERROR_PREFIX)
+    ? failedReason.slice(PUBLIC_ERROR_PREFIX.length).slice(0, 200)
+    : 'job failed';
+}
+
+// The app receives its dependencies (queues by job type, config) instead of creating them,
+// which lets tests run it with in-memory fake queues.
+export function createApp({ queues, config }) {
   const app = express();
-  const jobRequestSchema = buildJobRequestSchema({ maxSeriesLength: config.MAX_SERIES_LENGTH });
+  const jobRequestSchema = buildJobRequestSchema({
+    maxSeriesLength: config.MAX_SERIES_LENGTH,
+    geoDatasets: config.geoDatasets,
+  });
 
   app.set('trust proxy', config.TRUST_PROXY);
   app.use(helmet()); // security headers: CSP, HSTS, nosniff, frame-ancestors...
@@ -46,6 +58,8 @@ export function createApp({ queue, config }) {
       });
     }
 
+    const queue = queues[parsed.data.type];
+
     // Backpressure: if the backlog is full, refuse new work instead of letting it grow forever.
     const counts = await queue.getJobCounts(...PENDING_STATES);
     const pending = PENDING_STATES.reduce((sum, s) => sum + (counts[s] ?? 0), 0);
@@ -64,7 +78,12 @@ export function createApp({ queue, config }) {
 
   api.get('/jobs/:id', async (req, res) => {
     const id = JobIdSchema.safeParse(req.params.id);
-    const job = id.success ? await queue.getJob(id.data) : null;
+    let job = null;
+    // UUIDs are unique across queues, so look the job up in each one.
+    for (const queue of id.success ? Object.values(queues) : []) {
+      job = await queue.getJob(id.data);
+      if (job) break;
+    }
     // 404 (not 403) for someone else's job: do not even confirm that it exists.
     if (!job || job.data?.ownerId !== req.clientId) {
       return res.status(404).json({ error: 'not found' });
@@ -80,8 +99,8 @@ export function createApp({ queue, config }) {
       createdAt: job.timestamp ? new Date(job.timestamp).toISOString() : null,
       finishedAt: job.finishedOn ? new Date(job.finishedOn).toISOString() : null,
       result: state === 'completed' ? job.returnvalue : null,
-      // Internal error messages stay in the worker logs; the client gets a generic one.
-      error: state === 'failed' ? 'job failed' : null,
+      // Internal error messages stay in the worker logs unless explicitly marked as public.
+      error: state === 'failed' ? publicError(job.failedReason) : null,
     });
   });
 

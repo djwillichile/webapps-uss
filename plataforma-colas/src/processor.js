@@ -1,12 +1,12 @@
 import { UnrecoverableError } from 'bullmq';
-import { buildJobRequestSchema } from './schemas.js';
+import { buildSeriesJobSchema } from './schemas.js';
 import { computeSeriesStats } from './tasks/seriesStats.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Factory so tests and the worker can inject settings.
 export function createProcessor({ maxSeriesLength, simulatedWorkMs = 0 }) {
-  const schema = buildJobRequestSchema({ maxSeriesLength });
+  const schema = buildSeriesJobSchema({ maxSeriesLength });
 
   return async function processJob(job) {
     // Defense in depth: never trust what is in Redis, even if the API validated it.

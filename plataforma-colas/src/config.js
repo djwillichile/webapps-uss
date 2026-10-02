@@ -15,6 +15,10 @@ const EnvSchema = z.object({
   API_KEYS: z.string().min(1, 'API_KEYS is required (run: npm run hash-key)'),
 
   QUEUE_NAME: z.string().regex(/^[a-z0-9-]+$/).default('analisis'),
+  // Separate queue consumed by the Python geospatial worker.
+  GEO_QUEUE_NAME: z.string().regex(/^[a-z0-9-]+$/).default('geo'),
+  // Dataset IDs the API accepts; each must exist in the Python worker's DATASETS.
+  GEO_DATASETS: z.string().regex(/^[a-z0-9-]+(,[a-z0-9-]+)*$/).default('dem-demo'),
   MAX_QUEUE_SIZE: z.coerce.number().int().min(1).default(100),
   MAX_SERIES_LENGTH: z.coerce.number().int().min(3).max(5000).default(2000),
   RATE_LIMIT_PER_MIN: z.coerce.number().int().min(1).default(30),
@@ -46,5 +50,5 @@ export function loadConfig(env = process.env) {
   if (config.NODE_ENV === 'production' && !config.REDIS_PASSWORD) {
     throw new Error('REDIS_PASSWORD is required in production');
   }
-  return { ...config, clients: parseApiKeys(config.API_KEYS) };
+  return { ...config, clients: parseApiKeys(config.API_KEYS), geoDatasets: config.GEO_DATASETS.split(',') };
 }

@@ -14,6 +14,7 @@ export function testConfig(overrides = {}) {
     MAX_SERIES_LENGTH: 2000,
     RATE_LIMIT_PER_MIN: 1000,
     clients: parseApiKeys(apiKeys),
+    geoDatasets: ['dem-demo'],
     ...overrides,
   };
 }
@@ -54,5 +55,15 @@ export function request(base, path, { key, body, raw, method = body || raw ? 'PO
     body: raw ?? (body && JSON.stringify(body)),
   });
 }
+
+export function fakeQueues() {
+  return { 'series-stats': new FakeQueue(), 'zonal-stats': new FakeQueue() };
+}
+
+export const validZonalBody = {
+  type: 'zonal-stats',
+  dataset: 'dem-demo',
+  geometry: { type: 'Polygon', coordinates: [[[-70.6, -33.5], [-70.4, -33.5], [-70.4, -33.3], [-70.6, -33.3], [-70.6, -33.5]]] },
+};
 
 export const validBody = { type: 'series-stats', series: { name: 'pp', unit: 'mm', values: [3, 1, 2, 5, 4] } };
