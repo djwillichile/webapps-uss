@@ -152,6 +152,12 @@ Puedes visitar el sitio desplegado desde este repositorio [aquí]( https://djwil
 
 ---
 
+## 🧵 Proyecto extra – Plataforma segura con colas de trabajo
+
+Adelantándome a la unidad de Backend, construí [`plataforma-colas/`](plataforma-colas/): una API Node.js/Express que recibe trabajos pesados, los encola en Redis (BullMQ) y los distribuye a workers escalables, con autenticación por API key, rate limiting, backpressure y contenedores endurecidos. La guía de aprendizaje está en [`plataforma-colas/GUIA.md`](plataforma-colas/GUIA.md).
+
+---
+
 ## 📈 Próximas semanas
 
 | Semana | Tema estimado                             |

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma de colas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Plataforma de colas</h1>
+      <p>La API recibe el trabajo y responde de inmediato (202). Los workers lo procesan cuando tienen capacidad.</p>
+    </header>
+
+    <form id="job-form">
+      <label for="api-key">API key</label>
+      <input id="api-key" type="password" autocomplete="off" required minlength="16">
+
+      <label for="series-name">Nombre de la serie</label>
+      <input id="series-name" required maxlength="100" value="Precipitación anual (datos sintéticos)">
+
+      <label for="series-unit">Unidad</label>
+      <input id="series-unit" maxlength="20" value="mm">
+
+      <label for="series-values">Valores (separados por coma o espacio)</label>
+      <textarea id="series-values" rows="4" required></textarea>
+
+      <div class="actions">
+        <button type="button" id="fill-example">Generar ejemplo</button>
+        <button type="submit">Enviar a la cola</button>
+        <button type="button" id="burst">Enviar 10 a la vez</button>
+      </div>
+      <p id="form-msg" role="status"></p>
+    </form>
+
+    <form id="geo-form">
+      <h2>Estadística zonal (worker Python)</h2>
+      <label for="geo-dataset">Dataset</label>
+      <select id="geo-dataset">
+        <option value="dem-demo">dem-demo · DEM sintético Santiago–Andes</option>
+      </select>
+
+      <label for="geo-geometry">Polígono GeoJSON (WGS84). Puedes dibujarlo en geojson.io y copiar solo la "geometry"</label>
+      <textarea id="geo-geometry" rows="6" required></textarea>
+
+      <div class="actions">
+        <button type="button" id="geo-example">Ejemplo: precordillera</button>
+        <button type="submit">Enviar a la cola geo</button>
+      </div>
+      <p id="geo-msg" role="status"></p>
+    </form>
+
+    <section>
+      <h2>Trabajos</h2>
+      <ul id="jobs"></ul>
+    </section>
+  </main>
+  <script src="app.js" type="module"></script>
+</body>
+</html>

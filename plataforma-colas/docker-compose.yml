@@ -1,0 +1,84 @@
+# docker compose up --build --scale worker=3 --scale worker-geo=2
+services:
+  redis:
+    image: redis:7-alpine
+    # noeviction: BullMQ requires Redis to never silently evict keys (jobs would be lost).
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}",
+              "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: [redis-data:/data]
+    networks: [backend] # no published ports: unreachable from outside Docker
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    restart: unless-stopped
+
+  api:
+    build: .
+    command: ["node", "src/api.js"]
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "127.0.0.1:3000:3000" # only localhost; put a TLS reverse proxy in front for production
+    networks: [frontend, backend]
+    depends_on:
+      redis: { condition: service_healthy }
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ["node", "src/worker.js"]
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks: [backend] # workers expose nothing: they only pull from Redis
+    depends_on:
+      redis: { condition: service_healthy }
+    deploy:
+      replicas: 2
+      resources:
+        limits: { cpus: "0.50", memory: 256M } # one heavy job cannot starve the host
+    stop_grace_period: 35s # let active jobs finish on shutdown
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  worker-geo:
+    build: ./worker-py # same queue system, different language
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DATASETS: dem-demo=/app/data/dem_demo.tif
+      # Real data: mount it read-only and register it, e.g.
+      # DATASETS: dem-demo=/app/data/dem_demo.tif,srtm=/data/srtm_chile.tif
+    # volumes: ["./datos:/data:ro"]
+    networks: [backend]
+    depends_on:
+      redis: { condition: service_healthy }
+    deploy:
+      replicas: 1
+      resources:
+        limits: { cpus: "1.0", memory: 512M } # rasters need more memory than series
+    stop_grace_period: 35s
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+networks:
+  frontend:
+  backend:
+    internal: true # no Internet egress for Redis/workers
+
+volumes:
+  redis-data:

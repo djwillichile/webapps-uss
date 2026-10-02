@@ -1,0 +1,18 @@
+:root { --bg: #0f172a; --panel: #1e293b; --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --ok: #4ade80; --bad: #f87171; --warn: #fbbf24; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+main { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+header p { color: var(--muted); }
+form { margin-bottom: 16px; display: grid; gap: 8px; background: var(--panel); padding: 16px; border-radius: 12px; }
+label { font-size: 0.85rem; color: var(--muted); }
+input, textarea, select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #334155; background: #0b1220; color: var(--text); font: inherit; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+button { padding: 8px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #062033; font-weight: 600; cursor: pointer; }
+button[type="button"] { background: #334155; color: var(--text); }
+#jobs { list-style: none; padding: 0; display: grid; gap: 8px; }
+#jobs li { background: var(--panel); padding: 12px; border-radius: 10px; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; }
+#jobs progress { grid-column: 1 / -1; width: 100%; }
+#jobs pre { grid-column: 1 / -1; margin: 0; white-space: pre-wrap; font-size: 0.85rem; color: var(--muted); }
+.state[data-state="completed"] { color: var(--ok); }
+.state[data-state="failed"] { color: var(--bad); }
+.state[data-state="active"] { color: var(--warn); }
